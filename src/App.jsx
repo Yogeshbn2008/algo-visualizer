@@ -8,6 +8,7 @@ function App() {
   const [steps, setSteps] = useState([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [isSorting, setIsSorting] = useState(false);
+  const [algorithm, setAlgorithm] = useState('bubble');
   const [highlightedIndices, setHighlightedIndices] = useState([]);
 
   function generateRandomArray(size) {
@@ -50,12 +51,70 @@ function App() {
     return steps;
   }
 
-  function handleSortClick() {
-    const newSteps = getBubbleSortSteps(array);
-    setSteps(newSteps);
-    setStepIndex(0);
-    setIsSorting(true);
+  function getMergeSortSteps(inputArray) {
+  const arr = [...inputArray];
+  const steps = [];
+
+  function mergeSort(start, end) {
+    if (end - start <= 1) return; // 0 or 1 element = already "sorted"
+
+    const mid = Math.floor((start + end) / 2);
+    mergeSort(start, mid);
+    mergeSort(mid, end);
+    merge(start, mid, end);
   }
+
+  function merge(start, mid, end) {
+    const left = arr.slice(start, mid);
+    const right = arr.slice(mid, end);
+    let i = 0, j = 0, k = start;
+
+    while (i < left.length && j < right.length) {
+      steps.push({ indices: [start + i, mid + j], array: [...arr] }); // comparing
+
+      if (left[i] <= right[j]) {
+        arr[k] = left[i];
+        i++;
+      } else {
+        arr[k] = right[j];
+        j++;
+      }
+      steps.push({ indices: [k], array: [...arr] }); // overwrite
+      k++;
+    }
+
+    while (i < left.length) {
+      arr[k] = left[i];
+      steps.push({ indices: [k], array: [...arr] });
+      i++;
+      k++;
+    }
+
+    while (j < right.length) {
+      arr[k] = right[j];
+      steps.push({ indices: [k], array: [...arr] });
+      j++;
+      k++;
+    }
+  }
+
+  mergeSort(0, arr.length);
+  return steps;
+}
+
+  function handleSortClick() {
+  let newSteps;
+
+  if (algorithm === 'bubble') {
+    newSteps = getBubbleSortSteps(array);
+  } else if (algorithm === 'merge') {
+    newSteps = getMergeSortSteps(array);
+  }
+
+  setSteps(newSteps);
+  setStepIndex(0);
+  setIsSorting(true);
+}
 
   useEffect(() => {
     if (!isSorting) return;
@@ -84,8 +143,16 @@ function App() {
         <button onClick={handleGenerateClick} disabled={isSorting}>
           Generate New Array
         </button>
+        <select
+          value={algorithm}
+          onChange={(e) => setAlgorithm(e.target.value)}
+          disabled={isSorting}
+        >
+          <option value="bubble">Bubble Sort</option>
+          <option value="merge">Merge Sort</option>
+        </select>
         <button onClick={handleSortClick} disabled={isSorting}>
-          Sort (Bubble Sort)
+          Sort ({algorithm === 'bubble' ? 'Bubble Sort' : 'Merge Sort'})
         </button>
 
         <label>
