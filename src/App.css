@@ -1,0 +1,38 @@
+.app {
+  text-align: center;
+  font-family: sans-serif;
+}
+
+.bar-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 300px;
+  margin-top: 40px;
+}
+
+.bar {
+  width: 30px;
+  background-color: #4f9dff;
+}
+
+.bar.highlighted {
+  background-color: #ff4f4f;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
