@@ -7,6 +7,12 @@ const algorithmLabels = {
   quick: 'Quick Sort',
 };
 
+const complexityInfo = {
+  bubble: { best: 'O(n)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
+  merge: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)', space: 'O(n)' },
+  quick: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n²)', space: 'O(log n)' },
+};
+
 function App() {
   const [arraySize, setArraySize] = useState(20);
   const [speed, setSpeed] = useState(100); // ms delay between steps
@@ -289,9 +295,21 @@ function handleReset() {
             className={`bar ${highlightedIndices.includes(index) ? 'highlighted' : ''}`}
             style={{ height: `${value * 3}px` }}
           ></div>
+          
         ))}
       </div>
+
+      <div className="complexity-panel">
+        <h3>{algorithmLabels[algorithm]} — Time Complexity</h3>
+        <div className="complexity-grid">
+          <div><strong>Best:</strong> {complexityInfo[algorithm].best}</div>
+          <div><strong>Average:</strong> {complexityInfo[algorithm].average}</div>
+          <div><strong>Worst:</strong> {complexityInfo[algorithm].worst}</div>
+          <div><strong>Space:</strong> {complexityInfo[algorithm].space}</div>
+        </div>
+      </div>
     </div>
+    
   );
 }
 
