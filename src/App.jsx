@@ -1,6 +1,12 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 
+const algorithmLabels = {
+  bubble: 'Bubble Sort',
+  merge: 'Merge Sort',
+  quick: 'Quick Sort',
+};
+
 function App() {
   const [arraySize, setArraySize] = useState(20);
   const [speed, setSpeed] = useState(100); // ms delay between steps
@@ -102,6 +108,43 @@ function App() {
   return steps;
 }
 
+function getQuickSortSteps(inputArray) {
+  const arr = [...inputArray];
+  const steps = [];
+
+  function quickSort(low, high) {
+    if (low >= high) return; // 0 or 1 element = already sorted
+
+    const pivotIndex = partition(low, high);
+    quickSort(low, pivotIndex - 1);
+    quickSort(pivotIndex + 1, high);
+  }
+
+  function partition(low, high) {
+    const pivotValue = arr[high]; // last element as pivot
+    let i = low - 1; // boundary of "smaller than pivot" region
+
+    for (let j = low; j < high; j++) {
+      steps.push({ indices: [j, high], array: [...arr] }); // comparing to pivot
+
+      if (arr[j] < pivotValue) {
+        i++;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        steps.push({ indices: [i, j], array: [...arr] }); // swap
+      }
+    }
+
+    // place pivot in its final position
+    [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+    steps.push({ indices: [i + 1, high], array: [...arr] });
+
+    return i + 1;
+  }
+
+  quickSort(0, arr.length - 1);
+  return steps;
+}
+
   function handleSortClick() {
   let newSteps;
 
@@ -109,6 +152,8 @@ function App() {
     newSteps = getBubbleSortSteps(array);
   } else if (algorithm === 'merge') {
     newSteps = getMergeSortSteps(array);
+  } else if (algorithm === 'quick') {
+    newSteps = getQuickSortSteps(array);
   }
 
   setSteps(newSteps);
@@ -150,9 +195,10 @@ function App() {
         >
           <option value="bubble">Bubble Sort</option>
           <option value="merge">Merge Sort</option>
+          <option value="quick">Quick Sort</option>
         </select>
         <button onClick={handleSortClick} disabled={isSorting}>
-          Sort ({algorithm === 'bubble' ? 'Bubble Sort' : 'Merge Sort'})
+          Sort ({algorithmLabels[algorithm]})
         </button>
 
         <label>
