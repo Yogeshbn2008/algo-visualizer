@@ -13,7 +13,8 @@ function App() {
   const [array, setArray] = useState(() => generateRandomArray(arraySize));
   const [steps, setSteps] = useState([]);
   const [stepIndex, setStepIndex] = useState(0);
-  const [isSorting, setIsSorting] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [originalArray, setOriginalArray] = useState([]);
   const [algorithm, setAlgorithm] = useState('bubble');
   const [highlightedIndices, setHighlightedIndices] = useState([]);
 
@@ -27,7 +28,7 @@ function App() {
 
   function handleGenerateClick() {
     setArray(generateRandomArray(arraySize));
-    setIsSorting(false);
+    setIsPlaying(false);
     setStepIndex(0);
   }
 
@@ -35,7 +36,7 @@ function App() {
     const newSize = Number(e.target.value);
     setArraySize(newSize);
     setArray(generateRandomArray(newSize));
-    setIsSorting(false);
+    setIsPlaying(false);
     setStepIndex(0);
   }
 
@@ -146,26 +147,68 @@ function getQuickSortSteps(inputArray) {
 }
 
   function handleSortClick() {
+    setOriginalArray(array);
   let newSteps;
-
-  if (algorithm === 'bubble') {
-    newSteps = getBubbleSortSteps(array);
-  } else if (algorithm === 'merge') {
-    newSteps = getMergeSortSteps(array);
-  } else if (algorithm === 'quick') {
-    newSteps = getQuickSortSteps(array);
-  }
+  if (algorithm === 'bubble') newSteps = getBubbleSortSteps(array);
+  else if (algorithm === 'merge') newSteps = getMergeSortSteps(array);
+  else if (algorithm === 'quick') newSteps = getQuickSortSteps(array);
 
   setSteps(newSteps);
   setStepIndex(0);
-  setIsSorting(true);
+  setIsPlaying(true);
+}
+
+function handlePauseClick() {
+  setIsPlaying(false);
+}
+
+function handlePlayClick() {
+  if (steps.length > 0 && stepIndex < steps.length) {
+    setIsPlaying(true);
+  }
+}
+
+function handleStepForward() {
+  if (stepIndex < steps.length) {
+    setIsPlaying(false);
+    const currentStep = steps[stepIndex];
+    setArray(currentStep.array);
+    setHighlightedIndices(currentStep.indices);
+    setStepIndex(stepIndex + 1);
+  }
+}
+
+function handleStepBack() {
+  if (stepIndex === 0) return;
+
+  setIsPlaying(false);
+  const newStepIndex = stepIndex - 1;
+
+  if (newStepIndex === 0) {
+    setArray(originalArray);
+    setHighlightedIndices([]);
+  } else {
+    const prevStep = steps[newStepIndex - 1];
+    setArray(prevStep.array);
+    setHighlightedIndices(prevStep.indices);
+  }
+  setStepIndex(newStepIndex);
+}
+
+function handleReset() {
+  setIsPlaying(false);
+  setStepIndex(0);
+  setHighlightedIndices([]);
+  if (originalArray.length > 0) {
+    setArray(originalArray);
+  }
 }
 
   useEffect(() => {
-    if (!isSorting) return;
+    if (!isPlaying) return;
 
     if (stepIndex >= steps.length) {
-      setIsSorting(false);
+      setIsPlaying(false);
       setHighlightedIndices([]);
       return;
     }
@@ -178,27 +221,40 @@ function getQuickSortSteps(inputArray) {
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [isSorting, stepIndex, steps, speed]);
+  }, [isPlaying, stepIndex, steps, speed]);
 
   return (
     <div className="app">
       <h1>DSA Algorithm Visualizer</h1>
 
       <div className="controls">
-        <button onClick={handleGenerateClick} disabled={isSorting}>
+        <button onClick={handleGenerateClick} disabled={isPlaying}>
           Generate New Array
         </button>
         <select
           value={algorithm}
           onChange={(e) => setAlgorithm(e.target.value)}
-          disabled={isSorting}
+          disabled={isPlaying}
         >
           <option value="bubble">Bubble Sort</option>
           <option value="merge">Merge Sort</option>
           <option value="quick">Quick Sort</option>
         </select>
-        <button onClick={handleSortClick} disabled={isSorting}>
+        
+        <button onClick={handleStepBack} disabled={isPlaying || stepIndex === 0}>
+          ⏮ Step Back
+        </button>
+        <button onClick={handleSortClick} disabled={isPlaying}>
           Sort ({algorithmLabels[algorithm]})
+        </button>
+        <button onClick={isPlaying ? handlePauseClick : handlePlayClick} disabled={steps.length === 0}>
+          {isPlaying ? '⏸ Pause' : '▶ Play'}
+        </button>
+        <button onClick={handleStepForward} disabled={isPlaying || stepIndex >= steps.length}>
+          Step Forward ⏭
+        </button>
+        <button onClick={handleReset} disabled={isPlaying}>
+          ↻ Reset
         </button>
 
         <label>
@@ -209,7 +265,7 @@ function getQuickSortSteps(inputArray) {
             max="50"
             value={arraySize}
             onChange={handleSizeChange}
-            disabled={isSorting}
+            disabled={isPlaying}
           />
         </label>
 
