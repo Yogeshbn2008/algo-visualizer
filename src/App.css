@@ -15,6 +15,7 @@
 .bar {
   width: 30px;
   background-color: #4f9dff;
+  position: relative;
 }
 
 .bar.highlighted {
@@ -64,4 +65,32 @@
   margin-left: auto;
   margin-right: auto;
   min-height: 50px;
+}
+
+.bar.found {
+  background-color: #2ecc71;
+}
+
+.mode-toggle {
+  margin-bottom: 12px;
+}
+
+.mode-toggle button.active {
+  font-weight: bold;
+  border-bottom: 2px solid #4f9dff;
+}
+
+
+.bar-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
 }

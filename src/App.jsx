@@ -13,9 +13,10 @@ const complexityInfo = {
   quick: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n²)', space: 'O(log n)' },
 };
 
-// NEW: turns a step object into a human-readable sentence
-function getStepExplanation(step) {
-  if (!step) return 'Click Sort to begin.';
+function getStepExplanation(step, mode, target) {
+  if (!step) {
+    return mode === 'search' ? 'Enter a target and click Search.' : 'Click Sort to begin.';
+  }
 
   const [a, b] = step.indices;
   const valA = step.array[a];
@@ -25,10 +26,14 @@ function getStepExplanation(step) {
   if (step.type === 'swap') return `${valA} and ${valB} are out of order — swapping them.`;
   if (step.type === 'write') return `Placing ${valA} into position ${a}.`;
   if (step.type === 'pivot-placed') return `Pivot ${valB} placed in its final sorted position.`;
+  if (step.type === 'checking') return `Checking index ${a}: is ${valA} equal to ${target}?`;
+  if (step.type === 'found') return `Found it! ${valA} equals ${target} at index ${a}.`;
+  if (step.type === 'not-found') return `${target} was not found in the array.`;
   return '';
 }
 
 function App() {
+  const [mode, setMode] = useState('sort'); // 'sort' or 'search'
   const [arraySize, setArraySize] = useState(20);
   const [speed, setSpeed] = useState(100);
   const [array, setArray] = useState(() => generateRandomArray(arraySize));
@@ -38,7 +43,8 @@ function App() {
   const [originalArray, setOriginalArray] = useState([]);
   const [algorithm, setAlgorithm] = useState('bubble');
   const [highlightedIndices, setHighlightedIndices] = useState([]);
-  const [currentStep, setCurrentStep] = useState(null); // NEW
+  const [currentStep, setCurrentStep] = useState(null);
+  const [searchTarget, setSearchTarget] = useState('');
 
   function generateRandomArray(size) {
     const newArray = [];
@@ -48,22 +54,29 @@ function App() {
     return newArray;
   }
 
-  function handleGenerateClick() {
-    setArray(generateRandomArray(arraySize));
+  function resetPlaybackState() {
     setIsPlaying(false);
     setStepIndex(0);
-    setCurrentStep(null); // NEW
-    setHighlightedIndices([]); // NEW (cleans up stray highlights on regenerate)
+    setCurrentStep(null);
+    setHighlightedIndices([]);
+    setSteps([]);
+  }
+
+  function handleGenerateClick() {
+    setArray(generateRandomArray(arraySize));
+    resetPlaybackState();
   }
 
   function handleSizeChange(e) {
     const newSize = Number(e.target.value);
     setArraySize(newSize);
     setArray(generateRandomArray(newSize));
-    setIsPlaying(false);
-    setStepIndex(0);
-    setCurrentStep(null); // NEW
-    setHighlightedIndices([]); // NEW
+    resetPlaybackState();
+  }
+
+  function handleModeChange(newMode) {
+    setMode(newMode);
+    resetPlaybackState();
   }
 
   function getBubbleSortSteps(inputArray) {
@@ -103,7 +116,6 @@ function App() {
       let i = 0, j = 0, k = start;
 
       while (i < left.length && j < right.length) {
-        // CHANGED: added type: 'compare'
         steps.push({ type: 'compare', indices: [start + i, mid + j], array: [...arr] });
 
         if (left[i] <= right[j]) {
@@ -113,21 +125,20 @@ function App() {
           arr[k] = right[j];
           j++;
         }
-        // CHANGED: added type: 'write'
         steps.push({ type: 'write', indices: [k], array: [...arr] });
         k++;
       }
 
       while (i < left.length) {
         arr[k] = left[i];
-        steps.push({ type: 'write', indices: [k], array: [...arr] }); // CHANGED
+        steps.push({ type: 'write', indices: [k], array: [...arr] });
         i++;
         k++;
       }
 
       while (j < right.length) {
         arr[k] = right[j];
-        steps.push({ type: 'write', indices: [k], array: [...arr] }); // CHANGED
+        steps.push({ type: 'write', indices: [k], array: [...arr] });
         j++;
         k++;
       }
@@ -154,24 +165,45 @@ function App() {
       let i = low - 1;
 
       for (let j = low; j < high; j++) {
-        // CHANGED: added type: 'compare'
         steps.push({ type: 'compare', indices: [j, high], array: [...arr] });
 
         if (arr[j] < pivotValue) {
           i++;
           [arr[i], arr[j]] = [arr[j], arr[i]];
-          steps.push({ type: 'swap', indices: [i, j], array: [...arr] }); // CHANGED
+          steps.push({ type: 'swap', indices: [i, j], array: [...arr] });
         }
       }
 
       [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
-      // CHANGED: added type: 'pivot-placed'
       steps.push({ type: 'pivot-placed', indices: [i + 1, high], array: [...arr] });
 
       return i + 1;
     }
 
     quickSort(0, arr.length - 1);
+    return steps;
+  }
+
+    function getLinearSearchSteps(inputArray, target) {
+    const steps = [];
+    let found = false;
+
+    for (let i = 0; i < inputArray.length; i++) {
+      steps.push({
+        type: inputArray[i] === target ? 'found' : 'checking',
+        indices: [i],
+        array: inputArray,
+      });
+      if (inputArray[i] === target) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      steps.push({ type: 'not-found', indices: [], array: inputArray });
+    }
+
     return steps;
   }
 
@@ -184,7 +216,19 @@ function App() {
 
     setSteps(newSteps);
     setStepIndex(0);
-    setCurrentStep(null); // NEW
+    setCurrentStep(null);
+    setIsPlaying(true);
+  }
+
+  function handleSearchClick() {
+    const target = Number(searchTarget);
+    if (searchTarget === '' || isNaN(target)) return;
+
+    setOriginalArray(array);
+    const newSteps = getLinearSearchSteps(array, target);
+    setSteps(newSteps);
+    setStepIndex(0);
+    setCurrentStep(null);
     setIsPlaying(true);
   }
 
@@ -204,7 +248,7 @@ function App() {
       const step = steps[stepIndex];
       setArray(step.array);
       setHighlightedIndices(step.indices);
-      setCurrentStep(step); // NEW
+      setCurrentStep(step);
       setStepIndex(stepIndex + 1);
     }
   }
@@ -218,12 +262,12 @@ function App() {
     if (newStepIndex === 0) {
       setArray(originalArray);
       setHighlightedIndices([]);
-      setCurrentStep(null); // NEW
+      setCurrentStep(null);
     } else {
       const prevStep = steps[newStepIndex - 1];
       setArray(prevStep.array);
       setHighlightedIndices(prevStep.indices);
-      setCurrentStep(prevStep); // NEW
+      setCurrentStep(prevStep);
     }
     setStepIndex(newStepIndex);
   }
@@ -232,7 +276,7 @@ function App() {
     setIsPlaying(false);
     setStepIndex(0);
     setHighlightedIndices([]);
-    setCurrentStep(null); // NEW
+    setCurrentStep(null);
     if (originalArray.length > 0) {
       setArray(originalArray);
     }
@@ -251,7 +295,7 @@ function App() {
       const step = steps[stepIndex];
       setArray(step.array);
       setHighlightedIndices(step.indices);
-      setCurrentStep(step); // NEW
+      setCurrentStep(step);
       setStepIndex(stepIndex + 1);
     }, speed);
 
@@ -262,25 +306,62 @@ function App() {
     <div className="app">
       <h1>DSA Algorithm Visualizer</h1>
 
+      <div className="mode-toggle">
+        <button
+          className={mode === 'sort' ? 'active' : ''}
+          onClick={() => handleModeChange('sort')}
+          disabled={isPlaying}
+        >
+          Sorting
+        </button>
+        <button
+          className={mode === 'search' ? 'active' : ''}
+          onClick={() => handleModeChange('search')}
+          disabled={isPlaying}
+        >
+          Searching
+        </button>
+      </div>
+
       <div className="controls">
         <button onClick={handleGenerateClick} disabled={isPlaying}>
           Generate New Array
         </button>
-        <select
-          value={algorithm}
-          onChange={(e) => setAlgorithm(e.target.value)}
-          disabled={isPlaying}
-        >
-          <option value="bubble">Bubble Sort</option>
-          <option value="merge">Merge Sort</option>
-          <option value="quick">Quick Sort</option>
-        </select>
+
+        {mode === 'sort' && (
+          <>
+            <select
+              value={algorithm}
+              onChange={(e) => setAlgorithm(e.target.value)}
+              disabled={isPlaying}
+            >
+              <option value="bubble">Bubble Sort</option>
+              <option value="merge">Merge Sort</option>
+              <option value="quick">Quick Sort</option>
+            </select>
+            <button onClick={handleSortClick} disabled={isPlaying}>
+              Sort ({algorithmLabels[algorithm]})
+            </button>
+          </>
+        )}
+
+        {mode === 'search' && (
+          <>
+            <input
+              type="number"
+              placeholder="Target value"
+              value={searchTarget}
+              onChange={(e) => setSearchTarget(e.target.value)}
+              disabled={isPlaying}
+            />
+            <button onClick={handleSearchClick} disabled={isPlaying}>
+              Search
+            </button>
+          </>
+        )}
 
         <button onClick={handleStepBack} disabled={isPlaying || stepIndex === 0}>
           ⏮ Step Back
-        </button>
-        <button onClick={handleSortClick} disabled={isPlaying}>
-          Sort ({algorithmLabels[algorithm]})
         </button>
         <button onClick={isPlaying ? handlePauseClick : handlePlayClick} disabled={steps.length === 0}>
           {isPlaying ? '⏸ Pause' : '▶ Play'}
@@ -316,32 +397,45 @@ function App() {
           />
         </label>
       </div>
+      
 
       <div className="bar-container">
+        
         {array.map((value, index) => (
-          <div
+                   <div
             key={index}
-            className={`bar ${highlightedIndices.includes(index) ? 'highlighted' : ''}`}
+            className={`bar ${
+              highlightedIndices.includes(index)
+                ? currentStep?.type === 'found'
+                  ? 'found'
+                  : 'highlighted'
+                : ''
+            }`}
             style={{ height: `${value * 3}px` }}
-          ></div>
+          >
+            <span className="bar-label">{value}</span>
+          </div>
         ))}
       </div>
+      
 
-      {/* NEW: explanation panel */}
       <div className="explanation-panel">
         <strong>Step {stepIndex} / {steps.length}</strong>
-        <p>{getStepExplanation(currentStep)}</p>
+        <p>{getStepExplanation(currentStep, mode, searchTarget)}</p>
       </div>
 
-      <div className="complexity-panel">
-        <h3>{algorithmLabels[algorithm]} — Time Complexity</h3>
-        <div className="complexity-grid">
-          <div><strong>Best:</strong> {complexityInfo[algorithm].best}</div>
-          <div><strong>Average:</strong> {complexityInfo[algorithm].average}</div>
-          <div><strong>Worst:</strong> {complexityInfo[algorithm].worst}</div>
-          <div><strong>Space:</strong> {complexityInfo[algorithm].space}</div>
+      {mode === 'sort' && (
+        <div className="complexity-panel">
+          <h3>{algorithmLabels[algorithm]} — Time Complexity</h3>
+          <div className="complexity-grid">
+            <div><strong>Best:</strong> {complexityInfo[algorithm].best}</div>
+            <div><strong>Average:</strong> {complexityInfo[algorithm].average}</div>
+            <div><strong>Worst:</strong> {complexityInfo[algorithm].worst}</div>
+            <div><strong>Space:</strong> {complexityInfo[algorithm].space}</div>
+          </div>
         </div>
-      </div>
+      )}
+      
     </div>
   );
 }
