@@ -1,5 +1,6 @@
 import './App.css';
 import { useState, useEffect } from 'react';
+import PathfindingGrid from './PathfindingGrid';
 
 const algorithmLabels = {
   bubble: 'Bubble Sort',
@@ -367,6 +368,13 @@ function App() {
         >
           Searching
         </button>
+        <button
+          className={mode === 'pathfinding' ? 'active' : ''}
+          onClick={() => handleModeChange('pathfinding')}
+          disabled={isPlaying}
+        >
+          Pathfinding
+        </button>
       </div>
 
       {sortNotice && <div className="sort-notice">Array sorted for binary search</div>}
@@ -453,7 +461,7 @@ function App() {
           />
         </label>
       </div>
-
+        {mode !== 'pathfinding' && (
       <div className="bar-container">
         {array.map((value, index) => {
           const isEliminated =
@@ -479,6 +487,9 @@ function App() {
           );
         })}
       </div>
+      )}
+
+  {mode === 'pathfinding' && <PathfindingGrid />}
 
       <div className="explanation-panel">
         <strong>Step {stepIndex} / {steps.length}</strong>
