@@ -27,6 +27,8 @@ function getStepExplanation(step, mode, target) {
   if (step.type === 'write') return `Placing ${valA} into position ${a}.`;
   if (step.type === 'pivot-placed') return `Pivot ${valB} placed in its final sorted position.`;
   if (step.type === 'checking') return `Checking index ${a}: is ${valA} equal to ${target}?`;
+  if (step.type === 'checking-mid')
+    return `low=${step.low}, high=${step.high}, mid=${a} → is ${valA} equal to ${target}?`;
   if (step.type === 'found') return `Found it! ${valA} equals ${target} at index ${a}.`;
   if (step.type === 'not-found') return `${target} was not found in the array.`;
   return '';
@@ -42,9 +44,11 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [originalArray, setOriginalArray] = useState([]);
   const [algorithm, setAlgorithm] = useState('bubble');
+  const [searchAlgorithm, setSearchAlgorithm] = useState('linear');
   const [highlightedIndices, setHighlightedIndices] = useState([]);
   const [currentStep, setCurrentStep] = useState(null);
   const [searchTarget, setSearchTarget] = useState('');
+  const [sortNotice, setSortNotice] = useState(false);
 
   function generateRandomArray(size) {
     const newArray = [];
@@ -184,7 +188,7 @@ function App() {
     return steps;
   }
 
-    function getLinearSearchSteps(inputArray, target) {
+  function getLinearSearchSteps(inputArray, target) {
     const steps = [];
     let found = false;
 
@@ -207,6 +211,33 @@ function App() {
     return steps;
   }
 
+  // NEW: binary search step-generator
+  function getBinarySearchSteps(inputArray, target) {
+    const steps = [];
+    let low = 0;
+    let high = inputArray.length - 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+
+      if (inputArray[mid] === target) {
+        steps.push({ type: 'found', indices: [mid], low, high, array: inputArray });
+        return steps;
+      }
+
+      steps.push({ type: 'checking-mid', indices: [mid], low, high, array: inputArray });
+
+      if (inputArray[mid] < target) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    steps.push({ type: 'not-found', indices: [], low, high, array: inputArray });
+    return steps;
+  }
+
   function handleSortClick() {
     setOriginalArray(array);
     let newSteps;
@@ -224,12 +255,27 @@ function App() {
     const target = Number(searchTarget);
     if (searchTarget === '' || isNaN(target)) return;
 
-    setOriginalArray(array);
-    const newSteps = getLinearSearchSteps(array, target);
-    setSteps(newSteps);
-    setStepIndex(0);
-    setCurrentStep(null);
-    setIsPlaying(true);
+    if (searchAlgorithm === 'binary') {
+      // Binary search requires a sorted array — sort it first and tell the user
+      const sorted = [...array].sort((x, y) => x - y);
+      setArray(sorted);
+      setOriginalArray(sorted);
+      setSortNotice(true);
+      setTimeout(() => setSortNotice(false), 2000);
+
+      const newSteps = getBinarySearchSteps(sorted, target);
+      setSteps(newSteps);
+      setStepIndex(0);
+      setCurrentStep(null);
+      setIsPlaying(true);
+    } else {
+      setOriginalArray(array);
+      const newSteps = getLinearSearchSteps(array, target);
+      setSteps(newSteps);
+      setStepIndex(0);
+      setCurrentStep(null);
+      setIsPlaying(true);
+    }
   }
 
   function handlePauseClick() {
@@ -323,6 +369,8 @@ function App() {
         </button>
       </div>
 
+      {sortNotice && <div className="sort-notice">Array sorted for binary search</div>}
+
       <div className="controls">
         <button onClick={handleGenerateClick} disabled={isPlaying}>
           Generate New Array
@@ -347,6 +395,14 @@ function App() {
 
         {mode === 'search' && (
           <>
+            <select
+              value={searchAlgorithm}
+              onChange={(e) => setSearchAlgorithm(e.target.value)}
+              disabled={isPlaying}
+            >
+              <option value="linear">Linear Search</option>
+              <option value="binary">Binary Search</option>
+            </select>
             <input
               type="number"
               placeholder="Target value"
@@ -397,27 +453,32 @@ function App() {
           />
         </label>
       </div>
-      
 
       <div className="bar-container">
-        
-        {array.map((value, index) => (
-                   <div
-            key={index}
-            className={`bar ${
-              highlightedIndices.includes(index)
-                ? currentStep?.type === 'found'
-                  ? 'found'
-                  : 'highlighted'
-                : ''
-            }`}
-            style={{ height: `${value * 3}px` }}
-          >
-            <span className="bar-label">{value}</span>
-          </div>
-        ))}
+        {array.map((value, index) => {
+          const isEliminated =
+            mode === 'search' &&
+            searchAlgorithm === 'binary' &&
+            currentStep &&
+            (index < currentStep.low || index > currentStep.high);
+
+          return (
+            <div
+              key={index}
+              className={`bar ${
+                highlightedIndices.includes(index)
+                  ? currentStep?.type === 'found'
+                    ? 'found'
+                    : 'highlighted'
+                  : ''
+              } ${isEliminated ? 'eliminated' : ''}`}
+              style={{ height: `${value * 3}px` }}
+            >
+              <span className="bar-label">{value}</span>
+            </div>
+          );
+        })}
       </div>
-      
 
       <div className="explanation-panel">
         <strong>Step {stepIndex} / {steps.length}</strong>
@@ -435,7 +496,6 @@ function App() {
           </div>
         </div>
       )}
-      
     </div>
   );
 }
