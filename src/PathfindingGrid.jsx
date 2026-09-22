@@ -77,6 +77,60 @@ function getBFSSteps(grid, startNode, endNode) {
   return steps;
 }
 
+function getDFSSteps(grid, startNode, endNode) {
+  const steps = [];
+  const stack = [[startNode.row, startNode.col]];
+  const visited = new Set([`${startNode.row},${startNode.col}`]);
+  const parent = {};
+  const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  let found = false;
+
+  while (stack.length > 0) {
+    const [r, c] = stack.pop(); // <-- the only structural difference from BFS
+
+    if (r === endNode.row && c === endNode.col) {
+      found = true;
+      break;
+    }
+
+    if (!(r === startNode.row && c === startNode.col)) {
+      steps.push({ type: 'visit', row: r, col: c });
+    }
+
+    for (const [dr, dc] of directions) {
+      const nr = r + dr;
+      const nc = c + dc;
+      const key = `${nr},${nc}`;
+
+      const inBounds = nr >= 0 && nr < grid.length && nc >= 0 && nc < grid[0].length;
+      if (inBounds && !visited.has(key) && !grid[nr][nc].isWall) {
+        visited.add(key);
+        parent[key] = [r, c];
+        stack.push([nr, nc]);
+      }
+    }
+  }
+
+  if (found) {
+    const path = [];
+    let curr = [endNode.row, endNode.col];
+    while (curr[0] !== startNode.row || curr[1] !== startNode.col) {
+      path.push(curr);
+      curr = parent[`${curr[0]},${curr[1]}`];
+    }
+    path.push([startNode.row, startNode.col]);
+    path.reverse();
+
+    for (const [r, c] of path) {
+      steps.push({ type: 'path', row: r, col: c });
+    }
+  } else {
+    steps.push({ type: 'not-found' });
+  }
+
+  return steps;
+}
+
 function PathfindingGrid() {
   const [grid, setGrid] = useState(createGrid());
   const [placingMode, setPlacingMode] = useState('wall');
@@ -89,6 +143,7 @@ function PathfindingGrid() {
   const [visitedCells, setVisitedCells] = useState(new Set());
   const [pathCells, setPathCells] = useState(new Set());
   const [notFound, setNotFound] = useState(false);
+  const [pathAlgorithm, setPathAlgorithm] = useState('bfs'); // 'bfs' | 'dfs'
 
   function updateCell(row, col, updates) {
     const newGrid = grid.map((gridRow) =>
@@ -139,17 +194,21 @@ function handleCellClick(cell) {
 }
 
   function handleVisualizeClick() {
-    if (!startNode || !endNode) return;
+  if (!startNode || !endNode) return;
 
-    setVisitedCells(new Set());
-    setPathCells(new Set());
-    setNotFound(false);
+  setVisitedCells(new Set());
+  setPathCells(new Set());
+  setNotFound(false);
 
-    const newSteps = getBFSSteps(grid, startNode, endNode);
-    setSteps(newSteps);
-    setStepIndex(0);
-    setIsPlaying(true);
-  }
+  const newSteps =
+    pathAlgorithm === 'bfs'
+      ? getBFSSteps(grid, startNode, endNode)
+      : getDFSSteps(grid, startNode, endNode);
+
+  setSteps(newSteps);
+  setStepIndex(0);
+  setIsPlaying(true);
+}
 
   function handleClearBoard() {
     setGrid(createGrid());
@@ -228,8 +287,16 @@ function handleCellClick(cell) {
         >
           Place End
         </button>
+        <select
+          value={pathAlgorithm}
+          onChange={(e) => setPathAlgorithm(e.target.value)}
+          disabled={isPlaying}
+        >
+          <option value="bfs">BFS</option>
+          <option value="dfs">DFS</option>
+        </select>
         <button onClick={handleVisualizeClick} disabled={!startNode || !endNode || isPlaying}>
-          Visualize BFS
+          Visualize {pathAlgorithm.toUpperCase()}
         </button>
         <button onClick={handleClearBoard} disabled={isPlaying}>
           Clear Board
