@@ -66,3 +66,7 @@
   margin-bottom: 10px;
   font-size: 14px;
 }
+
+.cell.weighted {
+  background-color: #f39c12;
+}

@@ -15,6 +15,7 @@ function createGrid() {
         isWall: false,
         isStart: false,
         isEnd: false,
+        weight: 1,
       });
     }
     grid.push(currentRow);
@@ -22,13 +23,12 @@ function createGrid() {
   return grid;
 }
 
-// NEW: BFS step-generator
 function getBFSSteps(grid, startNode, endNode) {
   const steps = [];
   const queue = [[startNode.row, startNode.col]];
   const visited = new Set([`${startNode.row},${startNode.col}`]);
   const parent = {};
-  const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // up, down, left, right
+  const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
   let found = false;
 
   while (queue.length > 0) {
@@ -86,7 +86,7 @@ function getDFSSteps(grid, startNode, endNode) {
   let found = false;
 
   while (stack.length > 0) {
-    const [r, c] = stack.pop(); // <-- the only structural difference from BFS
+    const [r, c] = stack.pop();
 
     if (r === endNode.row && c === endNode.col) {
       found = true;
@@ -131,6 +131,86 @@ function getDFSSteps(grid, startNode, endNode) {
   return steps;
 }
 
+function getDijkstraSteps(grid, startNode, endNode) {
+  const steps = [];
+  const rows = grid.length;
+  const cols = grid[0].length;
+
+  const dist = {};
+  const parent = {};
+  const visited = new Set();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      dist[`${r},${c}`] = Infinity;
+    }
+  }
+  dist[`${startNode.row},${startNode.col}`] = 0;
+
+  const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  let found = false;
+
+  while (true) {
+    let current = null;
+    let smallestDist = Infinity;
+
+    for (const key in dist) {
+      if (!visited.has(key) && dist[key] < smallestDist) {
+        smallestDist = dist[key];
+        current = key;
+      }
+    }
+
+    if (current === null || smallestDist === Infinity) break;
+
+    const [r, c] = current.split(',').map(Number);
+    visited.add(current);
+
+    if (r === endNode.row && c === endNode.col) {
+      found = true;
+      break;
+    }
+
+    if (!(r === startNode.row && c === startNode.col)) {
+      steps.push({ type: 'visit', row: r, col: c });
+    }
+
+    for (const [dr, dc] of directions) {
+      const nr = r + dr;
+      const nc = c + dc;
+      const inBounds = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
+      if (!inBounds || grid[nr][nc].isWall) continue;
+
+      const neighborKey = `${nr},${nc}`;
+      const newDist = dist[current] + grid[nr][nc].weight;
+
+      if (newDist < dist[neighborKey]) {
+        dist[neighborKey] = newDist;
+        parent[neighborKey] = [r, c];
+      }
+    }
+  }
+
+  if (found) {
+    const path = [];
+    let curr = [endNode.row, endNode.col];
+    while (curr[0] !== startNode.row || curr[1] !== startNode.col) {
+      path.push(curr);
+      curr = parent[`${curr[0]},${curr[1]}`];
+    }
+    path.push([startNode.row, startNode.col]);
+    path.reverse();
+
+    for (const [r, c] of path) {
+      steps.push({ type: 'path', row: r, col: c });
+    }
+  } else {
+    steps.push({ type: 'not-found' });
+  }
+
+  return steps;
+}
+
 function PathfindingGrid() {
   const [grid, setGrid] = useState(createGrid());
   const [placingMode, setPlacingMode] = useState('wall');
@@ -143,7 +223,7 @@ function PathfindingGrid() {
   const [visitedCells, setVisitedCells] = useState(new Set());
   const [pathCells, setPathCells] = useState(new Set());
   const [notFound, setNotFound] = useState(false);
-  const [pathAlgorithm, setPathAlgorithm] = useState('bfs'); // 'bfs' | 'dfs'
+  const [pathAlgorithm, setPathAlgorithm] = useState('bfs');
 
   function updateCell(row, col, updates) {
     const newGrid = grid.map((gridRow) =>
@@ -156,59 +236,65 @@ function PathfindingGrid() {
     );
     setGrid(newGrid);
   }
-function handleCellClick(cell) {
-  if (isPlaying) return;
 
-  if (placingMode === 'start') {
-    const newGrid = grid.map((gridRow) =>
-      gridRow.map((c) => {
-        if (c.row === cell.row && c.col === cell.col) {
-          return { ...c, isStart: true, isWall: false };
-        }
-        if (c.isStart) {
-          return { ...c, isStart: false };
-        }
-        return c;
-      })
-    );
-    setGrid(newGrid);
-    setStartNode({ row: cell.row, col: cell.col });
-  } else if (placingMode === 'end') {
-    const newGrid = grid.map((gridRow) =>
-      gridRow.map((c) => {
-        if (c.row === cell.row && c.col === cell.col) {
-          return { ...c, isEnd: true, isWall: false };
-        }
-        if (c.isEnd) {
-          return { ...c, isEnd: false };
-        }
-        return c;
-      })
-    );
-    setGrid(newGrid);
-    setEndNode({ row: cell.row, col: cell.col });
-  } else {
-    if (cell.isStart || cell.isEnd) return;
-    updateCell(cell.row, cell.col, { isWall: !cell.isWall });
+  function handleCellClick(cell) {
+    if (isPlaying) return;
+
+    if (placingMode === 'start') {
+      const newGrid = grid.map((gridRow) =>
+        gridRow.map((c) => {
+          if (c.row === cell.row && c.col === cell.col) {
+            return { ...c, isStart: true, isWall: false };
+          }
+          if (c.isStart) {
+            return { ...c, isStart: false };
+          }
+          return c;
+        })
+      );
+      setGrid(newGrid);
+      setStartNode({ row: cell.row, col: cell.col });
+    } else if (placingMode === 'end') {
+      const newGrid = grid.map((gridRow) =>
+        gridRow.map((c) => {
+          if (c.row === cell.row && c.col === cell.col) {
+            return { ...c, isEnd: true, isWall: false };
+          }
+          if (c.isEnd) {
+            return { ...c, isEnd: false };
+          }
+          return c;
+        })
+      );
+      setGrid(newGrid);
+      setEndNode({ row: cell.row, col: cell.col });
+    } else if (placingMode === 'weight') {
+      if (cell.isStart || cell.isEnd) return;
+      updateCell(cell.row, cell.col, { weight: cell.weight === 1 ? 5 : 1 });
+    } else {
+      if (cell.isStart || cell.isEnd) return;
+      updateCell(cell.row, cell.col, { isWall: !cell.isWall });
+    }
   }
-}
 
   function handleVisualizeClick() {
-  if (!startNode || !endNode) return;
+    if (!startNode || !endNode) return;
 
-  setVisitedCells(new Set());
-  setPathCells(new Set());
-  setNotFound(false);
+    setVisitedCells(new Set());
+    setPathCells(new Set());
+    setNotFound(false);
 
-  const newSteps =
-    pathAlgorithm === 'bfs'
-      ? getBFSSteps(grid, startNode, endNode)
-      : getDFSSteps(grid, startNode, endNode);
+    const newSteps =
+      pathAlgorithm === 'bfs'
+        ? getBFSSteps(grid, startNode, endNode)
+        : pathAlgorithm === 'dfs'
+        ? getDFSSteps(grid, startNode, endNode)
+        : getDijkstraSteps(grid, startNode, endNode);
 
-  setSteps(newSteps);
-  setStepIndex(0);
-  setIsPlaying(true);
-}
+    setSteps(newSteps);
+    setStepIndex(0);
+    setIsPlaying(true);
+  }
 
   function handleClearBoard() {
     setGrid(createGrid());
@@ -220,6 +306,10 @@ function handleCellClick(cell) {
     setVisitedCells(new Set());
     setPathCells(new Set());
     setNotFound(false);
+  }
+
+  function step_delay(step) {
+    return step && step.type === 'path' ? 40 : 8;
   }
 
   useEffect(() => {
@@ -248,11 +338,6 @@ function handleCellClick(cell) {
     return () => clearTimeout(timer);
   }, [isPlaying, stepIndex, steps]);
 
-  function step_delay(step) {
-    // Path-tracing should be slower/more dramatic than the flood-fill visiting
-    return step && step.type === 'path' ? 40 : 8;
-  }
-
   function getCellClass(cell) {
     const key = `${cell.row},${cell.col}`;
     if (cell.isStart) return 'cell start';
@@ -260,6 +345,7 @@ function handleCellClick(cell) {
     if (pathCells.has(key)) return 'cell path';
     if (visitedCells.has(key)) return 'cell visited';
     if (cell.isWall) return 'cell wall';
+    if (cell.weight > 1) return 'cell weighted';
     return 'cell';
   }
 
@@ -287,6 +373,13 @@ function handleCellClick(cell) {
         >
           Place End
         </button>
+        <button
+          className={placingMode === 'weight' ? 'active' : ''}
+          onClick={() => setPlacingMode('weight')}
+          disabled={isPlaying}
+        >
+          Add Weight (5)
+        </button>
         <select
           value={pathAlgorithm}
           onChange={(e) => setPathAlgorithm(e.target.value)}
@@ -294,6 +387,7 @@ function handleCellClick(cell) {
         >
           <option value="bfs">BFS</option>
           <option value="dfs">DFS</option>
+          <option value="dijkstra">Dijkstra</option>
         </select>
         <button onClick={handleVisualizeClick} disabled={!startNode || !endNode || isPlaying}>
           Visualize {pathAlgorithm.toUpperCase()}
