@@ -80,9 +80,13 @@ function App() {
   }
 
   function handleModeChange(newMode) {
-    setMode(newMode);
-    resetPlaybackState();
-  }
+  setMode(newMode);
+  setIsPlaying(false);
+  setStepIndex(0);
+  setCurrentStep(null);
+  setHighlightedIndices([]);
+  setSteps([]);
+}
 
   function getBubbleSortSteps(inputArray) {
     const arr = [...inputArray];
@@ -357,21 +361,18 @@ function App() {
         <button
           className={mode === 'sort' ? 'active' : ''}
           onClick={() => handleModeChange('sort')}
-          disabled={isPlaying}
         >
           Sorting
         </button>
         <button
           className={mode === 'search' ? 'active' : ''}
           onClick={() => handleModeChange('search')}
-          disabled={isPlaying}
         >
           Searching
         </button>
         <button
           className={mode === 'pathfinding' ? 'active' : ''}
           onClick={() => handleModeChange('pathfinding')}
-          disabled={isPlaying}
         >
           Pathfinding
         </button>
@@ -379,88 +380,90 @@ function App() {
 
       {sortNotice && <div className="sort-notice">Array sorted for binary search</div>}
 
-      <div className="controls">
-        <button onClick={handleGenerateClick} disabled={isPlaying}>
-          Generate New Array
-        </button>
+      {mode !== 'pathfinding' && (
+  <div className="controls">
+    <button onClick={handleGenerateClick} disabled={isPlaying}>
+      Generate New Array
+    </button>
 
-        {mode === 'sort' && (
-          <>
-            <select
-              value={algorithm}
-              onChange={(e) => setAlgorithm(e.target.value)}
-              disabled={isPlaying}
-            >
-              <option value="bubble">Bubble Sort</option>
-              <option value="merge">Merge Sort</option>
-              <option value="quick">Quick Sort</option>
-            </select>
-            <button onClick={handleSortClick} disabled={isPlaying}>
-              Sort ({algorithmLabels[algorithm]})
-            </button>
-          </>
-        )}
-
-        {mode === 'search' && (
-          <>
-            <select
-              value={searchAlgorithm}
-              onChange={(e) => setSearchAlgorithm(e.target.value)}
-              disabled={isPlaying}
-            >
-              <option value="linear">Linear Search</option>
-              <option value="binary">Binary Search</option>
-            </select>
-            <input
-              type="number"
-              placeholder="Target value"
-              value={searchTarget}
-              onChange={(e) => setSearchTarget(e.target.value)}
-              disabled={isPlaying}
-            />
-            <button onClick={handleSearchClick} disabled={isPlaying}>
-              Search
-            </button>
-          </>
-        )}
-
-        <button onClick={handleStepBack} disabled={isPlaying || stepIndex === 0}>
-          ⏮ Step Back
+    {mode === 'sort' && (
+      <>
+        <select
+          value={algorithm}
+          onChange={(e) => setAlgorithm(e.target.value)}
+          disabled={isPlaying}
+        >
+          <option value="bubble">Bubble Sort</option>
+          <option value="merge">Merge Sort</option>
+          <option value="quick">Quick Sort</option>
+        </select>
+        <button onClick={handleSortClick} disabled={isPlaying}>
+          Sort ({algorithmLabels[algorithm]})
         </button>
-        <button onClick={isPlaying ? handlePauseClick : handlePlayClick} disabled={steps.length === 0}>
-          {isPlaying ? '⏸ Pause' : '▶ Play'}
-        </button>
-        <button onClick={handleStepForward} disabled={isPlaying || stepIndex >= steps.length}>
-          Step Forward ⏭
-        </button>
-        <button onClick={handleReset} disabled={isPlaying}>
-          ↻ Reset
-        </button>
+      </>
+    )}
 
-        <label>
-          Size: {arraySize}
-          <input
-            type="range"
-            min="5"
-            max="50"
-            value={arraySize}
-            onChange={handleSizeChange}
-            disabled={isPlaying}
-          />
-        </label>
+    {mode === 'search' && (
+      <>
+        <select
+          value={searchAlgorithm}
+          onChange={(e) => setSearchAlgorithm(e.target.value)}
+          disabled={isPlaying}
+        >
+          <option value="linear">Linear Search</option>
+          <option value="binary">Binary Search</option>
+        </select>
+        <input
+          type="number"
+          placeholder="Target value"
+          value={searchTarget}
+          onChange={(e) => setSearchTarget(e.target.value)}
+          disabled={isPlaying}
+        />
+        <button onClick={handleSearchClick} disabled={isPlaying}>
+          Search
+        </button>
+      </>
+    )}
 
-        <label>
-          Speed: {speed}ms
-          <input
-            type="range"
-            min="10"
-            max="500"
-            step="10"
-            value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-          />
-        </label>
-      </div>
+    <button onClick={handleStepBack} disabled={isPlaying || stepIndex === 0}>
+      ⏮ Step Back
+    </button>
+    <button onClick={isPlaying ? handlePauseClick : handlePlayClick} disabled={steps.length === 0}>
+      {isPlaying ? '⏸ Pause' : '▶ Play'}
+    </button>
+    <button onClick={handleStepForward} disabled={isPlaying || stepIndex >= steps.length}>
+      Step Forward ⏭
+    </button>
+    <button onClick={handleReset} disabled={isPlaying}>
+      ↻ Reset
+    </button>
+
+    <label>
+      Size: {arraySize}
+      <input
+        type="range"
+        min="5"
+        max="50"
+        value={arraySize}
+        onChange={handleSizeChange}
+        disabled={isPlaying}
+      />
+    </label>
+
+    <label>
+      Speed: {speed}ms
+      <input
+        type="range"
+        min="10"
+        max="500"
+        step="10"
+        value={speed}
+        onChange={(e) => setSpeed(Number(e.target.value))}
+      />
+    </label>
+  </div>
+)}
         {mode !== 'pathfinding' && (
       <div className="bar-container">
         {array.map((value, index) => {
@@ -491,10 +494,12 @@ function App() {
 
   {mode === 'pathfinding' && <PathfindingGrid />}
 
-      <div className="explanation-panel">
-        <strong>Step {stepIndex} / {steps.length}</strong>
-        <p>{getStepExplanation(currentStep, mode, searchTarget)}</p>
-      </div>
+      {mode !== 'pathfinding' && (
+        <div className="explanation-panel">
+          <strong>Step {stepIndex} / {steps.length}</strong>
+          <p>{getStepExplanation(currentStep, mode, searchTarget)}</p>
+        </div>
+      )}
 
       {mode === 'sort' && (
         <div className="complexity-panel">
