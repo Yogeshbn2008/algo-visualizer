@@ -1,6 +1,7 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 import PathfindingGrid from './PathfindingGrid';
+import { playNote, playSuccessChime } from './audio';
 
 const algorithmLabels = {
   bubble: 'Bubble Sort',
@@ -50,6 +51,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState(null);
   const [searchTarget, setSearchTarget] = useState('');
   const [sortNotice, setSortNotice] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   function generateRandomArray(size) {
     const newArray = [];
@@ -348,10 +350,22 @@ function App() {
       setHighlightedIndices(step.indices);
       setCurrentStep(step);
       setStepIndex(stepIndex + 1);
+
+      if (!isMuted && step) {
+        if (step.type === 'found') {
+          playSuccessChime();
+        } else if (step.indices && step.indices.length > 0) {
+          const activeIdx = step.indices[0];
+          const val = step.array[activeIdx];
+          if (val !== undefined) {
+            playNote(val, 5, 105, Math.min(speed / 1000, 0.08));
+          }
+        }
+      }
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [isPlaying, stepIndex, steps, speed]);
+  }, [isPlaying, stepIndex, steps, speed, isMuted]);
 
   return (
     <div className="app">
@@ -437,6 +451,13 @@ function App() {
     </button>
     <button onClick={handleReset} disabled={isPlaying}>
       ↻ Reset
+    </button>
+    <button
+      onClick={() => setIsMuted(!isMuted)}
+      className="sound-toggle-btn"
+      title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+    >
+      {isMuted ? '🔇 Sound Off' : '🔊 Sound On'}
     </button>
 
     <label>
