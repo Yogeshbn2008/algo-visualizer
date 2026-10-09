@@ -7,11 +7,17 @@ An interactive, frontend-only tool for visualizing how classic sorting, searchin
 ## Features
 
 ### Sorting
-- Bubble Sort, Merge Sort, and Quick Sort — each animated step-by-step
-- Adjustable array size and animation speed
-- Full playback controls: Play, Pause, Step Forward, Step Back, Reset
-- Real-time time/space complexity panel per algorithm
-- Plain-English step explanation (e.g. "Comparing 7 and 3")
+- **Bubble Sort, Insertion Sort, Merge Sort, and Quick Sort** — each animated step-by-step
+- **Web Audio Sonification**: Native Web Audio API synthesizer generating real-time sine wave audio tones pitched directly to bar height during comparisons and swaps (with Mute/Unmute toggle)
+- **Curated Edge-Case Presets ("Algorithm Killers")**:
+  - *Nearly Sorted*: Demonstrates why Insertion Sort runs in $O(n)$ time and beats QuickSort
+  - *Reverse Sorted*: Demonstrates QuickSort worst-case performance ($O(n^2)$ with naive pivot)
+  - *Few Unique / Duplicates*: Tests 3-way partitioning and duplicate value handling
+- **Custom Array Input**: Type or paste any comma-separated sequence of numbers with real-time range validation
+- **Adjustable Array Size & Animation Speed** (10ms to 500ms)
+- **Full Playback Controls**: Play, Pause, Step Forward, Step Back, Reset
+- **Real-Time Complexity Panel**: Best, Average, Worst time, and auxiliary space badges
+- **Plain-English Step Explanations**: e.g., "Comparing 7 and 3", "Pivot 45 placed in final sorted position"
 
 ### Searching
 - Linear Search with sequential highlighting
