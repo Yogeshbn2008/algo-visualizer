@@ -52,8 +52,26 @@ function App() {
   const [searchTarget, setSearchTarget] = useState('');
   const [sortNotice, setSortNotice] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [arrayPreset, setArrayPreset] = useState('random');
 
-  function generateRandomArray(size) {
+  function generateArrayByPreset(preset, size) {
+    if (preset === 'nearly-sorted') {
+      const arr = Array.from({ length: size }, (_, i) => Math.floor(((i + 1) / size) * 95) + 5);
+      const swapCount = Math.max(1, Math.floor(size * 0.1));
+      for (let s = 0; s < swapCount; s++) {
+        const idx = Math.floor(Math.random() * (size - 1));
+        [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+      }
+      return arr;
+    }
+    if (preset === 'reverse') {
+      return Array.from({ length: size }, (_, i) => Math.floor(((size - i) / size) * 95) + 5);
+    }
+    if (preset === 'few-unique') {
+      const uniqueValues = [20, 45, 75, 95];
+      return Array.from({ length: size }, () => uniqueValues[Math.floor(Math.random() * uniqueValues.length)]);
+    }
+    // Default: Random
     const newArray = [];
     for (let i = 0; i < size; i++) {
       newArray.push(Math.floor(Math.random() * 100) + 5);
@@ -69,15 +87,22 @@ function App() {
     setSteps([]);
   }
 
+  function handlePresetChange(e) {
+    const newPreset = e.target.value;
+    setArrayPreset(newPreset);
+    setArray(generateArrayByPreset(newPreset, arraySize));
+    resetPlaybackState();
+  }
+
   function handleGenerateClick() {
-    setArray(generateRandomArray(arraySize));
+    setArray(generateArrayByPreset(arrayPreset, arraySize));
     resetPlaybackState();
   }
 
   function handleSizeChange(e) {
     const newSize = Number(e.target.value);
     setArraySize(newSize);
-    setArray(generateRandomArray(newSize));
+    setArray(generateArrayByPreset(arrayPreset, newSize));
     resetPlaybackState();
   }
 
@@ -397,8 +422,20 @@ function App() {
       {mode !== 'pathfinding' && (
   <div className="controls">
     <button onClick={handleGenerateClick} disabled={isPlaying}>
-      Generate New Array
+      Generate Array
     </button>
+    <select
+      value={arrayPreset}
+      onChange={handlePresetChange}
+      disabled={isPlaying}
+      title="Select input array pattern to test algorithm behaviors"
+      className="preset-select"
+    >
+      <option value="random">Preset: Random</option>
+      <option value="nearly-sorted">Preset: Nearly Sorted (Insertion Sort Best Case)</option>
+      <option value="reverse">Preset: Reverse Sorted (QuickSort Killer)</option>
+      <option value="few-unique">Preset: Few Unique (Many Duplicates)</option>
+    </select>
 
     {mode === 'sort' && (
       <>
