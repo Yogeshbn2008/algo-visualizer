@@ -53,6 +53,8 @@ function App() {
   const [sortNotice, setSortNotice] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [arrayPreset, setArrayPreset] = useState('random');
+  const [customInput, setCustomInput] = useState('');
+  const [inputError, setInputError] = useState('');
 
   function generateArrayByPreset(preset, size) {
     if (preset === 'nearly-sorted') {
@@ -103,6 +105,26 @@ function App() {
     const newSize = Number(e.target.value);
     setArraySize(newSize);
     setArray(generateArrayByPreset(arrayPreset, newSize));
+    resetPlaybackState();
+  }
+
+  function handleApplyCustomInput() {
+    if (!customInput.trim()) return;
+    const parts = customInput.split(/[\s,]+/).filter(Boolean);
+    const numbers = parts.map(Number);
+
+    if (numbers.some(isNaN)) {
+      setInputError('Please enter valid numbers only.');
+      return;
+    }
+    if (numbers.length < 3 || numbers.length > 50) {
+      setInputError('Please enter between 3 and 50 numbers.');
+      return;
+    }
+    const clamped = numbers.map((n) => Math.min(100, Math.max(5, Math.round(n))));
+    setArray(clamped);
+    setArraySize(clamped.length);
+    setInputError('');
     resetPlaybackState();
   }
 
@@ -520,6 +542,26 @@ function App() {
         onChange={(e) => setSpeed(Number(e.target.value))}
       />
     </label>
+  </div>
+)}
+
+{mode !== 'pathfinding' && (
+  <div className="custom-input-bar">
+    <input
+      type="text"
+      placeholder="Or enter custom array (e.g. 20, 5, 85, 42, 12, 60)"
+      value={customInput}
+      onChange={(e) => setCustomInput(e.target.value)}
+      disabled={isPlaying}
+      className="custom-array-input"
+    />
+    <button
+      onClick={handleApplyCustomInput}
+      disabled={isPlaying || !customInput.trim()}
+    >
+      Apply Array
+    </button>
+    {inputError && <span className="input-error">{inputError}</span>}
   </div>
 )}
         {mode !== 'pathfinding' && (
