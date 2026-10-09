@@ -18,10 +18,15 @@ An interactive, frontend-only tool for visualizing how classic sorting, searchin
 - Binary Search with automatic array sorting and live `low`/`mid`/`high` visualization — eliminated search space dims out as it narrows
 
 ### Pathfinding
-- Interactive grid: click to place a start node, end node, and walls
-- BFS (guarantees shortest path), DFS (explores depth-first, no shortest-path guarantee), and Dijkstra's algorithm (shortest path on a *weighted* grid)
-- Weighted cells to demonstrate how Dijkstra routes around costly terrain, unlike BFS/DFS which ignore weight entirely
-- Animated "flood fill" exploration followed by a traced final path
+- Interactive 15x30 grid: click or drag to paint walls, weights, start, and end nodes
+- **A* Search (A-Star)**: Directed heuristic pathfinding using Manhattan distance ($f = g + h$), showing focused beam search toward target vs Dijkstra's radial expansion
+- **Dijkstra's Algorithm**: Optimal pathfinding on weighted terrain (cost: 5)
+- **BFS & DFS**: Classic unweighted graph traversal comparing queue (shortest path) vs stack (winding deep paths)
+- **Maze Generation**:
+  - *Recursive Division*: Procedural generation creating structured corridors and chambers
+  - *Random Terrain*: Scatters randomized obstacles and weighted swamp cells
+- **Live Telemetry & Diagnostics**: Real-time counter tracking cells visited, path length, and total traversal cost
+- **"Clear Path" vs "Clear Board"**: Re-run multiple algorithms on the exact same maze without redrawing walls
 
 ## Tech Stack
 
