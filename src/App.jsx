@@ -5,12 +5,14 @@ import { playNote, playSuccessChime } from './audio';
 
 const algorithmLabels = {
   bubble: 'Bubble Sort',
+  insertion: 'Insertion Sort',
   merge: 'Merge Sort',
   quick: 'Quick Sort',
 };
 
 const complexityInfo = {
   bubble: { best: 'O(n)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
+  insertion: { best: 'O(n)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
   merge: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)', space: 'O(n)' },
   quick: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n²)', space: 'O(log n)' },
 };
@@ -150,6 +152,29 @@ function App() {
           steps.push({ type: 'swap', indices: [j, j + 1], array: [...arr] });
         }
       }
+    }
+
+    return steps;
+  }
+
+  function getInsertionSortSteps(inputArray) {
+    const arr = [...inputArray];
+    const steps = [];
+
+    for (let i = 1; i < arr.length; i++) {
+      const key = arr[i];
+      let j = i - 1;
+
+      steps.push({ type: 'compare', indices: [j, i], array: [...arr] });
+
+      while (j >= 0 && arr[j] > key) {
+        steps.push({ type: 'compare', indices: [j, j + 1], array: [...arr] });
+        arr[j + 1] = arr[j];
+        steps.push({ type: 'write', indices: [j + 1], array: [...arr] });
+        j--;
+      }
+      arr[j + 1] = key;
+      steps.push({ type: 'write', indices: [j + 1], array: [...arr] });
     }
 
     return steps;
@@ -296,6 +321,7 @@ function App() {
     setOriginalArray(array);
     let newSteps;
     if (algorithm === 'bubble') newSteps = getBubbleSortSteps(array);
+    else if (algorithm === 'insertion') newSteps = getInsertionSortSteps(array);
     else if (algorithm === 'merge') newSteps = getMergeSortSteps(array);
     else if (algorithm === 'quick') newSteps = getQuickSortSteps(array);
 
@@ -467,6 +493,7 @@ function App() {
           disabled={isPlaying}
         >
           <option value="bubble">Bubble Sort</option>
+          <option value="insertion">Insertion Sort</option>
           <option value="merge">Merge Sort</option>
           <option value="quick">Quick Sort</option>
         </select>
